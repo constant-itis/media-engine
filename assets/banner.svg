@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-label="media-engine — headless ffmpeg operations. one engine, three faces, zero dependencies.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14161c"/>
+      <stop offset="1" stop-color="#0a0b0e"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5ff0d8"/>
+      <stop offset="1" stop-color="#2fd6c0"/>
+    </linearGradient>
+    <radialGradient id="glowc" cx="0.18" cy="0.12" r="0.62">
+      <stop offset="0" stop-color="#5ff0d8" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#5ff0d8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowv" cx="0.92" cy="1.05" r="0.75">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="fadeMask">
+      <rect x="700" y="0" width="490" height="240" fill="url(#fade)"/>
+    </mask>
+    <pattern id="ticks" width="26" height="240" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="1" height="240" fill="#5ff0d8"/>
+    </pattern>
+    <clipPath id="frame">
+      <rect width="1200" height="240" rx="14"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1200" height="240" rx="14" fill="url(#bg)"/>
+  <rect width="1200" height="240" rx="14" fill="url(#glowc)"/>
+  <rect width="1200" height="240" rx="14" fill="url(#glowv)"/>
+
+  <!-- faint column ticks, fading in toward the right edge -->
+  <g clip-path="url(#frame)">
+    <rect x="700" y="0" width="490" height="240" fill="url(#ticks)" opacity="0.07" mask="url(#fadeMask)"/>
+  </g>
+
+  <!-- spectrum mark: violet chroma-split ghost behind cyan bars, scan baseline under -->
+  <g transform="translate(58,26) scale(2.1)">
+    <g opacity="0.55">
+      <rect x="17.1" y="56" width="5.4" height="10" rx="2.7" fill="#a78bfa"/>
+      <rect x="25.7" y="46" width="5.4" height="20" rx="2.7" fill="#a78bfa"/>
+      <rect x="34.3" y="32" width="5.4" height="34" rx="2.7" fill="#a78bfa"/>
+      <rect x="42.9" y="20" width="5.4" height="46" rx="2.7" fill="#a78bfa"/>
+      <rect x="51.5" y="36" width="5.4" height="30" rx="2.7" fill="#a78bfa"/>
+      <rect x="60.1" y="48" width="5.4" height="18" rx="2.7" fill="#a78bfa"/>
+      <rect x="68.7" y="54" width="5.4" height="12" rx="2.7" fill="#a78bfa"/>
+    </g>
+    <g>
+      <rect x="19.5" y="56" width="5.4" height="10" rx="2.7" fill="url(#bar)"/>
+      <rect x="28.1" y="46" width="5.4" height="20" rx="2.7" fill="url(#bar)"/>
+      <rect x="36.7" y="32" width="5.4" height="34" rx="2.7" fill="url(#bar)"/>
+      <rect x="45.3" y="20" width="5.4" height="46" rx="2.7" fill="url(#bar)"/>
+      <rect x="53.9" y="36" width="5.4" height="30" rx="2.7" fill="url(#bar)"/>
+      <rect x="62.5" y="48" width="5.4" height="18" rx="2.7" fill="url(#bar)"/>
+      <rect x="71.1" y="54" width="5.4" height="12" rx="2.7" fill="url(#bar)"/>
+    </g>
+    <rect x="14" y="68.5" width="68" height="2.4" rx="1.2" fill="#5ff0d8" opacity="0.9"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="268" y="112" font-family="'JetBrains Mono','Cascadia Code','SF Mono',Menlo,Consolas,monospace" font-size="52" font-weight="700" letter-spacing="1" fill="#e9edf3">media<tspan fill="#5ff0d8">&#183;</tspan>engine</text>
+  <text x="270" y="150" font-family="'JetBrains Mono','Cascadia Code','SF Mono',Menlo,Consolas,monospace" font-size="17" fill="#98a1b3">headless ffmpeg operations <tspan fill="#5ff0d8">&#8212;</tspan> one engine, three faces, zero dependencies</text>
+
+  <!-- face chips -->
+  <g font-family="'JetBrains Mono','Cascadia Code','SF Mono',Menlo,Consolas,monospace" font-size="13" letter-spacing="1.5">
+    <rect x="270" y="170" width="54" height="26" rx="6" fill="#5ff0d8" fill-opacity="0.06" stroke="#2a3140"/>
+    <text x="297" y="187" fill="#5ff0d8" text-anchor="middle">CLI</text>
+    <rect x="336" y="170" width="54" height="26" rx="6" fill="#5ff0d8" fill-opacity="0.06" stroke="#2a3140"/>
+    <text x="363" y="187" fill="#5ff0d8" text-anchor="middle">MCP</text>
+    <rect x="402" y="170" width="54" height="26" rx="6" fill="#a78bfa" fill-opacity="0.06" stroke="#2a3140"/>
+    <text x="429" y="187" fill="#a78bfa" text-anchor="middle">WEB</text>
+  </g>
+
+  <!-- glass top edge -->
+  <rect x="0.75" y="0.75" width="1198.5" height="238.5" rx="13.5" fill="none" stroke="#ffffff" stroke-opacity="0.06"/>
+</svg>
