@@ -1,0 +1,3 @@
+# The engine itself (engine/, cli.py) is stdlib-only — no install needed.
+# Only the MCP face (server.py) needs a dependency:
+fastmcp>=2.0
