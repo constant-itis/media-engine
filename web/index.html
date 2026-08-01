@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>media-engine</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#12151d; --panel2:#171b25; --line:#242a38;
+    --ink:#e6e9f0; --dim:#8b93a7; --accent:#5eead4; --accent2:#38bdf8;
+    --danger:#fb7185; --ok:#4ade80; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    display:grid; grid-template-rows:auto 1fr;
+  }
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  header{
+    padding:16px 22px; border-bottom:1px solid var(--line);
+    display:flex; align-items:baseline; gap:14px; background:var(--panel);
+  }
+  header h1{margin:0; font-size:18px; letter-spacing:.3px}
+  header h1 .dot{color:var(--accent)}
+  header .tag{color:var(--dim); font-size:13px}
+  header .count{margin-left:auto; color:var(--dim); font-size:12px}
+  main{display:grid; grid-template-columns:280px 1fr; min-height:0}
+  /* sidebar */
+  aside{border-right:1px solid var(--line); overflow:auto; background:var(--panel)}
+  .search{padding:12px}
+  .search input{
+    width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font-size:13px; outline:none;
+  }
+  .search input:focus{border-color:var(--accent2)}
+  .grp{padding:4px 12px 2px; color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.8px}
+  .op{
+    padding:8px 12px 8px 16px; cursor:pointer; border-left:2px solid transparent;
+    display:flex; flex-direction:column; gap:1px;
+  }
+  .op:hover{background:var(--panel2)}
+  .op.active{background:var(--panel2); border-left-color:var(--accent)}
+  .op .id{font-size:13px; font-family:ui-monospace,monospace}
+  .op .d{font-size:11px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* workspace */
+  section{overflow:auto; padding:26px 30px}
+  .empty{color:var(--dim); max-width:520px; margin-top:40px}
+  .empty h2{color:var(--ink); font-weight:600}
+  .op-head h2{margin:0 0 3px; font-size:20px; font-family:ui-monospace,monospace}
+  .op-head .cat{
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px;
+    background:var(--panel2); color:var(--accent); border:1px solid var(--line); text-transform:uppercase; letter-spacing:.5px;
+  }
+  .op-head p{color:var(--dim); margin:8px 0 22px}
+  /* dropzone */
+  .drop{
+    border:2px dashed var(--line); border-radius:var(--radius); padding:34px 20px;
+    text-align:center; cursor:pointer; transition:.15s; background:var(--panel);
+  }
+  .drop:hover{border-color:var(--accent2); background:var(--panel2)}
+  .drop.over{border-color:var(--accent); background:var(--panel2); transform:scale(1.005)}
+  .drop .big{font-size:15px}
+  .drop .sub{color:var(--dim); font-size:13px; margin-top:6px}
+  .drop.has{border-style:solid; border-color:var(--line); text-align:left; display:flex; align-items:center; gap:14px}
+  .drop.has .thumb{width:64px; height:64px; border-radius:8px; object-fit:cover; background:var(--bg); flex:none; display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:24px}
+  .drop.has .meta{min-width:0}
+  .drop.has .fn{font-family:ui-monospace,monospace; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .drop.has .fs{color:var(--dim); font-size:12px}
+  .drop.has .change{margin-left:auto; color:var(--accent2); font-size:12px}
+  /* params */
+  .params{margin:22px 0; display:grid; gap:15px}
+  .field{display:grid; gap:6px}
+  .field label{font-size:13px; font-weight:500}
+  .field label .req{color:var(--danger)}
+  .field .hint{font-size:11px; color:var(--dim)}
+  .field input[type=text],.field input[type=number],.field select{
+    padding:8px 10px; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font-size:13px; outline:none; max-width:340px;
+  }
+  .field input:focus,.field select:focus{border-color:var(--accent2)}
+  .field.bool{display:flex; align-items:center; gap:9px}
+  .field.bool input{width:16px; height:16px; accent-color:var(--accent)}
+  .field.bool label{font-weight:400}
+  .filemini{font-size:12px}
+  .filemini .name{color:var(--accent); font-family:ui-monospace,monospace}
+  /* run + result */
+  .run{
+    margin-top:8px; padding:11px 24px; border:none; border-radius:9px; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#04121a;
+    font-weight:700; font-size:14px;
+  }
+  .run:disabled{opacity:.5; cursor:not-allowed}
+  .result{margin-top:26px}
+  .spinner{display:inline-block; width:16px; height:16px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-3px; margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .card{border:1px solid var(--line); border-radius:var(--radius); padding:16px; background:var(--panel)}
+  .card.err{border-color:var(--danger)}
+  .card .rt{font-size:13px; color:var(--dim); margin-bottom:12px}
+  .card .rt.okc{color:var(--ok)}
+  .card .rt.errc{color:var(--danger)}
+  .preview{max-width:100%; max-height:52vh; border-radius:8px; display:block; background:var(--bg)}
+  .dl{
+    display:inline-block; margin-top:14px; padding:9px 18px; border-radius:8px;
+    background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+    text-decoration:none; font-size:13px; font-weight:600;
+  }
+  .dl:hover{border-color:var(--accent)}
+  @media(max-width:720px){ main{grid-template-columns:1fr} aside{max-height:34vh} }
+</style>
+</head>
+<body>
+<header>
+  <h1>media<span class="dot">·</span>engine</h1>
+  <span class="tag">headless ffmpeg operations — drag a file, pick an op, run</span>
+  <span class="count" id="count"></span>
+</header>
+<main>
+  <aside>
+    <div class="search"><input id="search" placeholder="Search operations…" autocomplete="off"></div>
+    <div id="oplist"></div>
+  </aside>
+  <section id="work">
+    <div class="empty">
+      <h2>Pick an operation</h2>
+      <p>Choose one on the left, drop in a file, tweak the settings, and run.
+      Everything happens locally through ffmpeg — your file is processed on this
+      machine and the result comes straight back to you.</p>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (s,r=document)=>r.querySelector(s);
+let OPS=[], current=null, inputFile=null, auxFiles={};
+
+const fmtBytes = n => n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB';
+const iconFor = cat => cat==='video'?'🎬':cat==='audio'?'🎵':'🖼️';
+
+async function boot(){
+  const r = await fetch('/api/operations'); const d = await r.json();
+  OPS = d.operations;
+  $('#count').textContent = OPS.length+' operations';
+  renderList('');
+  $('#search').addEventListener('input', e=>renderList(e.target.value.toLowerCase()));
+  // deep-link: /#op_id opens that operation directly
+  const fromHash = ()=>{ const o=OPS.find(x=>x.id===location.hash.slice(1)); if(o) selectOp(o); };
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+}
+
+function renderList(q){
+  const list = $('#oplist'); list.innerHTML='';
+  const cats = ['video','audio','image'];
+  for(const cat of cats){
+    const ops = OPS.filter(o=>o.category===cat &&
+      (o.id.includes(q)||o.description.toLowerCase().includes(q)));
+    if(!ops.length) continue;
+    const g=document.createElement('div'); g.className='grp'; g.textContent=iconFor(cat)+' '+cat;
+    list.appendChild(g);
+    for(const o of ops){
+      const el=document.createElement('div'); el.className='op'+(current&&current.id===o.id?' active':'');
+      el.innerHTML=`<span class="id">${o.id}</span><span class="d">${o.description}</span>`;
+      el.onclick=()=>selectOp(o);
+      list.appendChild(el);
+    }
+  }
+}
+
+function selectOp(o){
+  current=o; inputFile=null; auxFiles={};
+  renderList($('#search').value.toLowerCase());
+  const pathParams = o.params.filter(p=>p.kind==='path');
+  const knobParams = o.params.filter(p=>p.kind!=='path');
+  const work=$('#work');
+  work.innerHTML = `
+    <div class="op-head">
+      <span class="cat">${o.category}</span>
+      <h2>${o.id}</h2>
+      <p>${o.description}</p>
+    </div>
+    <div class="drop" id="drop">
+      <div class="big">Drag &amp; drop your file here</div>
+      <div class="sub">or click to browse — ${o.category} file</div>
+    </div>
+    <input type="file" id="file" hidden>
+    ${pathParams.map(p=>`
+      <div class="field" style="margin-top:16px">
+        <label>${p.name} ${p.required?'<span class="req">*</span>':''}</label>
+        ${p.help?`<span class="hint">${p.help}</span>`:''}
+        <input type="file" data-aux="${p.name}">
+      </div>`).join('')}
+    <div class="params">${knobParams.map(renderField).join('')}</div>
+    <button class="run" id="run">Run ${o.id}</button>
+    <div class="result" id="result"></div>`;
+  wireDrop();
+  work.querySelectorAll('[data-aux]').forEach(inp=>{
+    inp.onchange=()=>{ if(inp.files[0]) auxFiles[inp.dataset.aux]=inp.files[0]; };
+  });
+  $('#run').onclick=run;
+}
+
+function renderField(p){
+  const req = p.required?'<span class="req">*</span>':'';
+  const hint = p.help?`<span class="hint">${p.help}</span>`:'';
+  if(p.kind==='bool'){
+    return `<div class="field bool">
+      <input type="checkbox" id="p_${p.name}" ${p.default?'checked':''}>
+      <label for="p_${p.name}">${p.name} ${hint}</label></div>`;
+  }
+  if(p.kind==='choice'){
+    const opts=p.choices.map(c=>`<option value="${c}" ${String(c)===String(p.default)?'selected':''}>${c}</option>`).join('');
+    return `<div class="field"><label>${p.name} ${req}</label>${hint}
+      <select id="p_${p.name}">${opts}</select></div>`;
+  }
+  if(p.kind==='int'||p.kind==='float'){
+    const step=p.kind==='int'?'1':'any';
+    const mn=p.min!=null?`min="${p.min}"`:'', mx=p.max!=null?`max="${p.max}"`:'';
+    return `<div class="field"><label>${p.name} ${req}</label>${hint}
+      <input type="number" id="p_${p.name}" value="${p.default??''}" step="${step}" ${mn} ${mx}></div>`;
+  }
+  return `<div class="field"><label>${p.name} ${req}</label>${hint}
+    <input type="text" id="p_${p.name}" value="${p.default??''}"></div>`;
+}
+
+function wireDrop(){
+  const dz=$('#drop'), fi=$('#file');
+  dz.onclick=()=>fi.click();
+  fi.onchange=()=>{ if(fi.files[0]) setInput(fi.files[0]); };
+  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('over');}));
+  dz.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) setInput(f); });
+}
+
+function setInput(f){
+  inputFile=f;
+  const dz=$('#drop'); dz.classList.add('has');
+  let thumb=iconFor(current.category);
+  if(f.type.startsWith('image/')) thumb=`<img class="thumb" src="${URL.createObjectURL(f)}">`;
+  else thumb=`<div class="thumb">${thumb}</div>`;
+  dz.innerHTML=`${thumb}<div class="meta"><div class="fn">${f.name}</div>
+    <div class="fs">${fmtBytes(f.size)}</div></div><div class="change">change</div>`;
+}
+
+async function run(){
+  if(!inputFile){ alert('Drop in a file first.'); return; }
+  const btn=$('#run'), res=$('#result');
+  btn.disabled=true;
+  res.innerHTML=`<div class="card"><span class="spinner"></span>Processing…</div>`;
+  const fd=new FormData();
+  fd.append('__input__', inputFile);
+  for(const [name,f] of Object.entries(auxFiles)) fd.append(name,f);
+  for(const p of current.params.filter(p=>p.kind!=='path')){
+    const el=document.getElementById('p_'+p.name); if(!el) continue;
+    fd.append(p.name, p.kind==='bool' ? (el.checked?'true':'false') : el.value);
+  }
+  const t0=performance.now();
+  try{
+    const r=await fetch('/api/run/'+current.id,{method:'POST',body:fd});
+    const ct=r.headers.get('Content-Type')||'';
+    if(ct.includes('application/json')){
+      const e=await r.json();
+      res.innerHTML=`<div class="card err"><div class="rt errc">✕ failed</div>
+        <div class="mono">${(e.error||'error').replace(/</g,'&lt;')}</div></div>`;
+    }else{
+      const blob=await r.blob();
+      const name=r.headers.get('X-Output-Filename')||'output';
+      const url=URL.createObjectURL(blob);
+      const secs=((performance.now()-t0)/1000).toFixed(1);
+      res.innerHTML=`<div class="card"><div class="rt okc">✓ done in ${secs}s · ${fmtBytes(blob.size)}</div>
+        ${previewHTML(ct,url)}
+        <a class="dl" href="${url}" download="${name}">↓ Download ${name}</a></div>`;
+    }
+  }catch(err){
+    res.innerHTML=`<div class="card err"><div class="rt errc">✕ ${err}</div></div>`;
+  }
+  btn.disabled=false;
+}
+
+function previewHTML(ct,url){
+  if(ct.startsWith('image/')) return `<img class="preview" src="${url}">`;
+  if(ct.startsWith('video/')) return `<video class="preview" src="${url}" controls autoplay muted loop></video>`;
+  if(ct.startsWith('audio/')) return `<audio src="${url}" controls style="width:100%;margin-top:6px"></audio>`;
+  return '';
+}
+boot();
+</script>
+</body>
+</html>

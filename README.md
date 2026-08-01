@@ -47,11 +47,14 @@ engine/
   operations.py   OPERATIONS registry: Param specs + build(ctx)->[Pass]  (source of truth)
 cli.py            CLI face:  list | info <op> | run <op> -i IN -o OUT --param val
 server.py         MCP face:  auto-generates one typed tool per op from OPERATIONS
+webserver.py      Web face:  stdlib HTTP server + drag-and-drop web UI
+web/index.html    the single self-contained page (vanilla JS, no build step)
 recon/            the ripped-source inventory + Linux-port assessment
 ```
 
-Both faces drive the same `OPERATIONS` registry. Port an op once in `operations.py`
-and it appears in the CLI **and** as an MCP tool automatically — zero per-face code.
+All three faces drive the same `OPERATIONS` registry. Port an op once in
+`operations.py` and it appears in the CLI, as an MCP tool, **and** in the web UI
+automatically — zero per-face code.
 
 ## Usage
 
@@ -76,6 +79,22 @@ python3 server.py                    # stdio entrypoint your MCP client launches
 
 An agent then calls `list_operations` to discover ops and invokes any op
 (`video_to_gif`, `video_speed`, `add_watermark`, …) directly with a params dict.
+
+### Web UI
+
+`webserver.py` serves a drag-and-drop web UI over a stdlib HTTP server — **no
+dependencies at all** (not even fastmcp; it's pure Python + one self-contained
+HTML page). Drop in a file, pick an operation, tweak the auto-generated form,
+run — the file is processed locally through ffmpeg and streamed straight back to
+download. Deep-link an operation with `/#op_id`.
+
+```
+python3 webserver.py            # then open http://127.0.0.1:8765
+python3 webserver.py --host 0.0.0.0 --port 9000
+```
+
+Binds localhost by default; it runs ffmpeg on uploaded input, so don't expose it
+to an untrusted network.
 
 ## Improvements over the ripped source (recon-flagged)
 
