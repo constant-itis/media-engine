@@ -16,6 +16,12 @@ drag-and-drop web UI. The engine and two of the three faces are **pure Python st
 ffmpeg is the only external binary. Everything runs locally — your files never leave your
 machine.
 
+<p align="center">
+  <img src="assets/screenshot.png" alt="media-engine web UI running the video_to_gif operation, default palette" width="49%">
+  <img src="assets/screenshot-hue.png" alt="the same page with the hue knob rotated to a warm palette" width="49%">
+</p>
+<p align="center"><sub>The web UI running <code>video_to_gif</code> — drag a file, tune the auto-generated form, watch ffmpeg run live. <em>Same page, hue knob rotated:</em> every accent is one CSS variable and shader/canvas uniform, so the whole palette and the animated background recolor instantly (and the motion can be paused to save resources).</sub></p>
+
 ```
                       ┌──────────────────────────────┐
   cli.py ────────────►│                              │
