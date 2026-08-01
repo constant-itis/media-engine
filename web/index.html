@@ -95,6 +95,12 @@
   .result{margin-top:26px}
   .spinner{display:inline-block; width:16px; height:16px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-3px; margin-right:8px}
   @keyframes spin{to{transform:rotate(360deg)}}
+  .bar{height:8px; border-radius:6px; background:var(--bg); overflow:hidden; margin:10px 0 8px; border:1px solid var(--line)}
+  .barfill{height:100%; width:0; border-radius:6px; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .2s ease}
+  .barfill.indet{width:35%; animation:indet 1.1s ease-in-out infinite}
+  @keyframes indet{0%{margin-left:-35%}100%{margin-left:100%}}
+  .stage{font-size:13px; color:var(--dim)}
+  .stage b{color:var(--ink); font-family:ui-monospace,monospace; font-weight:600}
   .card{border:1px solid var(--line); border-radius:var(--radius); padding:16px; background:var(--panel)}
   .card.err{border-color:var(--danger)}
   .card .rt{font-size:13px; color:var(--dim); margin-bottom:12px}
@@ -246,7 +252,10 @@ async function run(){
   if(!inputFile){ alert('Drop in a file first.'); return; }
   const btn=$('#run'), res=$('#result');
   btn.disabled=true;
-  res.innerHTML=`<div class="card"><span class="spinner"></span>Processing…</div>`;
+  res.innerHTML=`<div class="card">
+      <div class="stage">Uploading &amp; starting…</div>
+      <div class="bar"><div class="barfill indet" id="barfill"></div></div>
+      <div class="stage" id="ptext"></div></div>`;
   const fd=new FormData();
   fd.append('__input__', inputFile);
   for(const [name,f] of Object.entries(auxFiles)) fd.append(name,f);
@@ -255,26 +264,59 @@ async function run(){
     fd.append(p.name, p.kind==='bool' ? (el.checked?'true':'false') : el.value);
   }
   const t0=performance.now();
+  let r, j;
   try{
-    const r=await fetch('/api/run/'+current.id,{method:'POST',body:fd});
-    const ct=r.headers.get('Content-Type')||'';
-    if(ct.includes('application/json')){
-      const e=await r.json();
-      res.innerHTML=`<div class="card err"><div class="rt errc">✕ failed</div>
-        <div class="mono">${(e.error||'error').replace(/</g,'&lt;')}</div></div>`;
-    }else{
-      const blob=await r.blob();
-      const name=r.headers.get('X-Output-Filename')||'output';
-      const url=URL.createObjectURL(blob);
-      const secs=((performance.now()-t0)/1000).toFixed(1);
-      res.innerHTML=`<div class="card"><div class="rt okc">✓ done in ${secs}s · ${fmtBytes(blob.size)}</div>
-        ${previewHTML(ct,url)}
-        <a class="dl" href="${url}" download="${name}">↓ Download ${name}</a></div>`;
-    }
-  }catch(err){
-    res.innerHTML=`<div class="card err"><div class="rt errc">✕ ${err}</div></div>`;
+    r=await fetch('/api/run/'+current.id,{method:'POST',body:fd});
+    j=await r.json();
+  }catch(err){ return showError(''+err); }
+  if(!r.ok || j.error) return showError(j.error||'failed to start');
+
+  const es=new EventSource('/api/progress/'+j.job_id);
+  es.onmessage=(ev)=>{
+    const p=JSON.parse(ev.data);
+    if(p.status==='running'){ updateBar(p); }
+    else if(p.status==='done'){ es.close(); showResult(j.job_id, (performance.now()-t0)/1000); }
+    else if(p.status==='error'){ es.close(); showError(p.error||'failed'); }
+  };
+  es.onerror=()=>{ es.close(); };
+}
+
+function updateBar(p){
+  const bf=$('#barfill'), pt=$('#ptext');
+  if(!bf) return;
+  const stage = $('.card .stage');
+  if(stage) stage.innerHTML = 'Processing <b>'+(p.label||'')+'</b>';
+  if(p.pct!=null){
+    const pct=Math.min(100, p.pct);   // slow-down ops process past the input duration
+    bf.classList.remove('indet');
+    bf.style.width=pct.toFixed(0)+'%';
+    pt.textContent = pct.toFixed(0)+'%' + (p.total?` · ${p.done}s / ${p.total}s`:'');
+  }else{
+    bf.classList.add('indet');
+    pt.textContent = p.done ? `${p.done}s` : '';
   }
-  btn.disabled=false;
+}
+
+async function showResult(jobId, secs){
+  const res=$('#result');
+  let r;
+  try{ r=await fetch('/api/result/'+jobId); }
+  catch(err){ return showError(''+err); }
+  if(!r.ok) return showError('result fetch failed');
+  const blob=await r.blob();
+  const ct=r.headers.get('Content-Type')||'';
+  const name=r.headers.get('X-Output-Filename')||'output';
+  const url=URL.createObjectURL(blob);
+  res.innerHTML=`<div class="card"><div class="rt okc">✓ done in ${secs.toFixed(1)}s · ${fmtBytes(blob.size)}</div>
+    ${previewHTML(ct,url)}
+    <a class="dl" href="${url}" download="${name}">↓ Download ${name}</a></div>`;
+  $('#run').disabled=false;
+}
+
+function showError(msg){
+  $('#result').innerHTML=`<div class="card err"><div class="rt errc">✕ failed</div>
+    <div class="mono">${(''+msg).replace(/</g,'&lt;')}</div></div>`;
+  $('#run').disabled=false;
 }
 
 function previewHTML(ct,url){
