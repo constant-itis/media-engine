@@ -18,7 +18,7 @@
   --ink:#08090c; --ink2:#0b0d11; --ink3:#0e1116;
   --panel:rgba(17,20,27,.62); --panel2:rgba(22,26,34,.72); --panel-solid:#10131a;
   --line:rgba(150,170,205,.11); --line2:rgba(150,170,205,.20); --line3:rgba(150,170,205,.32);
-  --fg:#e8ecf3; --dim:#8b95a9; --faint:#5a6474; --mute:#3d4552;
+  --fg:#e8ecf3; --dim:#b3bccd; --faint:#8e99ac; --mute:#5c6675;
   --sh:0;                       /* hue-shift knob (degrees) — set live by the slider */
   --ch:calc(170 + var(--sh));   /* cyan anchor hue  */
   --vh:calc(255 + var(--sh));   /* violet anchor hue */
@@ -38,7 +38,7 @@ body{
   font:14px/1.55 var(--sans);
   -webkit-font-smoothing:antialiased;
   overflow:hidden;
-  display:grid; grid-template-rows:auto 1fr; height:100%;
+  display:grid; grid-template-rows:auto 1fr; grid-template-columns:minmax(0,1fr); height:100%;
 }
 ::selection{background:hsl(var(--ch) 82% 66% / .24); color:#fff}
 .mono{font-family:var(--mono)}
@@ -103,11 +103,14 @@ header{
 @media(max-width:820px){.hue label{display:none} .hue input[type=range]{width:84px}}
 
 /* ---------- layout ---------- */
-main{position:relative; --side:var(--side-open,300px); display:grid; grid-template-columns:var(--side) 1fr; min-height:0; overflow:hidden}
+main{position:relative; --side:var(--side-open,300px); --rail:96px; display:grid; grid-template-columns:var(--rail) 1fr; min-height:0; overflow:hidden}
 
 /* ---------- sidebar: floating glass panel, inset off the left edge ---------- */
-aside{margin:16px 0 18px 22px; border:1px solid var(--line2); border-radius:16px;
+aside{position:relative; z-index:15; grid-column:1; grid-row:1; --ins:22px;
+  width:calc(var(--side) - var(--ins)); margin:16px 0 18px var(--ins); align-self:stretch;
+  border:1px solid var(--line2); border-radius:16px;
   overflow-y:auto; overflow-x:hidden;
+  transition:width .2s cubic-bezier(.2,.7,.3,1);
   background:linear-gradient(180deg, rgba(16,19,26,.66), rgba(10,12,17,.5));
   backdrop-filter:blur(18px) saturate(1.3); -webkit-backdrop-filter:blur(18px) saturate(1.3);
   box-shadow:0 28px 66px -30px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.05);}
@@ -148,7 +151,7 @@ aside::-webkit-scrollbar-thumb,section::-webkit-scrollbar-thumb{background:var(-
 .no-res{padding:22px 16px; color:var(--faint); font-size:12px; font-family:var(--mono)}
 /* collapsed icon-rail — bigger, taller, thicker so glyphs read clearly */
 main.collapsed{--side:88px}
-main.collapsed aside{margin-left:14px}
+main.collapsed aside{--ins:14px}
 main.collapsed .search{display:none}
 main.collapsed .grp{justify-content:center; padding:15px 0 6px; gap:0}
 main.collapsed .grp .glabel,main.collapsed .grp .gc,main.collapsed .grp .grline{display:none}
@@ -172,10 +175,13 @@ main.collapsed .op:hover{transform:scale(1.09)}
 .resizer::after{content:""; position:absolute; left:4px; top:16px; bottom:20px; width:2px; border-radius:2px; background:transparent; transition:background .15s, box-shadow .15s}
 .resizer:hover::after,.resizer.drag::after{background:var(--cyan-dim); box-shadow:0 0 10px var(--cyan)}
 main.collapsed .resizer{display:none}
+/* no width-easing while actively dragging the handle (only the collapse toggle animates) */
+main:has(.resizer.drag) aside,main:has(.resizer.drag) section{transition:none}
 
 /* ---------- workspace ---------- */
-section{overflow-y:auto; overflow-x:hidden; padding:0}
-.wrap{position:relative; max-width:900px; margin:0 auto; padding:44px 48px 96px}
+section{position:relative; z-index:1; overflow-y:auto; overflow-x:hidden;
+  padding:0 0 0 max(0px, calc(var(--side) - var(--rail) + 22px)); transition:padding-left .2s cubic-bezier(.2,.7,.3,1)}
+.wrap{position:relative; max-width:900px; margin:0 auto; padding:30px 48px 48px}
 .wrap::before{content:""; position:absolute; inset:-4% -12% 20%; z-index:-1; pointer-events:none;
   background:radial-gradient(64% 52% at 42% 34%, rgba(6,8,11,.82), rgba(6,8,11,.34) 56%, transparent 78%)}
 
@@ -208,22 +214,24 @@ section{overflow-y:auto; overflow-x:hidden; padding:0}
 @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(-5px)}}
 
 /* op detail */
-.op-head{display:flex; align-items:flex-start; gap:16px; margin-bottom:30px}
+.op-head{display:flex; align-items:flex-start; gap:16px; margin-bottom:20px}
 .op-head .cat{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
   color:var(--cyan-dim); padding:5px 10px; border:1px solid var(--line2); border-radius:6px; margin-top:8px; white-space:nowrap;
   background:hsl(var(--ch) 82% 66% / .05)}
 .op-head .ht{min-width:0}
 .op-head .idx{font-family:var(--mono); font-size:11px; color:var(--faint); letter-spacing:.1em; margin-bottom:6px}
-.op-head h2{margin:0; font-family:var(--mono); font-size:clamp(26px,3.5vw,38px); font-weight:800; letter-spacing:-.03em; color:#f4f7fb; word-break:break-word}
-.op-head p{color:var(--dim); margin:12px 0 0; max-width:56ch; font-size:14.5px; line-height:1.6}
+.op-head h2{margin:0; font-family:var(--mono); font-size:clamp(24px,3vw,32px); font-weight:800; letter-spacing:-.03em; color:#f4f7fb; word-break:break-word}
+.op-head p{color:var(--dim); margin:9px 0 0; max-width:56ch; font-size:14px; line-height:1.55}
 
-.sect-label{font-family:var(--mono); font-size:10.5px; letter-spacing:.15em; text-transform:uppercase; color:var(--faint);
+.sect-label{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
   display:flex; align-items:center; gap:12px; margin:0 0 14px}
-.sect-label .n{color:var(--cyan-dim)}
-.sect-label .rule{flex:1; height:1px; background:var(--line)}
+.sect-label .n{color:var(--cyan); font-weight:700; position:relative; padding-left:12px}
+.sect-label .n::before{content:""; position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:12px; border-radius:2px;
+  background:linear-gradient(var(--cyan),var(--violet)); box-shadow:0 0 8px hsl(var(--ch) 82% 66% / .5)}
+.sect-label .rule{flex:1; height:1px; background:linear-gradient(90deg, hsl(var(--ch) 70% 58% / .4), var(--line2) 24%, transparent)}
 
 /* dropzone */
-.drop{position:relative; border:1.5px dashed var(--line3); border-radius:var(--r); padding:40px 24px;
+.drop{position:relative; border:1.5px dashed var(--line3); border-radius:var(--r); padding:24px 24px;
   text-align:center; cursor:pointer; transition:.18s; background:
     radial-gradient(120% 140% at 50% 0%, hsl(var(--ch) 82% 66% / .05), transparent 60%), rgba(11,14,19,.5);
   overflow:hidden}
@@ -231,7 +239,7 @@ section{overflow-y:auto; overflow-x:hidden; padding:0}
   repeating-linear-gradient(90deg, transparent 0 22px, hsl(var(--ch) 82% 66% / .04) 22px 23px); opacity:.5; pointer-events:none}
 .drop:hover{border-color:var(--cyan-dim); background:radial-gradient(120% 140% at 50% 0%, hsl(var(--ch) 82% 66% / .09), transparent 60%), rgba(14,18,24,.6)}
 .drop.over{border-color:var(--cyan); border-style:solid; box-shadow:0 0 0 4px hsl(var(--ch) 82% 66% / .12), inset 0 0 40px hsl(var(--ch) 82% 66% / .06)}
-.drop .ic{width:40px; height:40px; margin:0 auto 14px; color:var(--cyan-dim); opacity:.9}
+.drop .ic{width:34px; height:34px; margin:0 auto 10px; color:var(--cyan-dim); opacity:.9}
 .drop .big{font-size:15px; color:var(--fg); font-weight:500}
 .drop .big em{font-style:normal; color:var(--cyan)}
 .drop .sub{color:var(--faint); font-size:12px; margin-top:7px; font-family:var(--mono); letter-spacing:.02em}
@@ -261,7 +269,7 @@ section{overflow-y:auto; overflow-x:hidden; padding:0}
 .field input[type=file]::file-selector-button{font-family:var(--mono); font-size:11px; margin-right:10px; padding:5px 10px;
   border:1px solid var(--line2); background:hsl(var(--ch) 82% 66% / .06); color:var(--cyan); border-radius:6px; cursor:pointer}
 .field input:focus,.field select:focus{border-color:var(--cyan-dim); box-shadow:0 0 0 3px hsl(var(--ch) 82% 66% / .1)}
-.field select{appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b95a9' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px}
+.field select{appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b3bccd' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px}
 /* custom themed dropdown (native option popups can't be styled) */
 .sr-only{position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
 .selectx{position:relative}
@@ -298,7 +306,7 @@ section{overflow-y:auto; overflow-x:hidden; padding:0}
 .field.bool input:focus-visible~.track{box-shadow:0 0 0 3px hsl(var(--ch) 82% 66% / .15)}
 
 /* run */
-.runbar{display:flex; align-items:center; gap:16px; margin-top:34px; padding-top:26px; border-top:1px solid var(--line)}
+.runbar{display:flex; align-items:center; gap:16px; margin-top:22px; padding-top:20px; border-top:1px solid var(--line)}
 .run{position:relative; padding:13px 30px; border:none; border-radius:10px; cursor:pointer;
   background:linear-gradient(120deg,var(--cyan),hsl(var(--ch) 74% 71%) 55%,var(--violet)); color:#04140f;
   font-family:var(--mono); font-weight:700; font-size:13.5px; letter-spacing:.02em; overflow:hidden;
@@ -339,12 +347,64 @@ section{overflow-y:auto; overflow-x:hidden; padding:0}
 .fade{animation:fade .4s ease both}
 @keyframes fade{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
 
+/* mobile-only nav, hidden on desktop */
+#mobnav,#mobscrim{display:none}
+
 /* responsive */
 @media(max-width:820px){
-  main{grid-template-columns:1fr; grid-template-rows:auto 1fr}
-  aside{max-height:38vh; border-right:none; border-bottom:1px solid var(--line)}
-  .hero{padding:38px 24px 30px} .wrap{padding:30px 24px 80px}
-  .hdr-tag{display:none} header{padding:12px 18px}
+  main{grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr}
+  aside,#work{min-width:0}
+  #work{padding-left:0}
+  .resizer{display:none}
+  /* mobile: sidebar collapses to a row of worded CATEGORY dropdowns; their op lists float over the workspace */
+  aside{position:relative; z-index:30; width:auto; max-height:none; overflow:visible; margin:8px 12px 0; padding:0;
+    background:none; border:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; transition:none}
+  aside .search,#oplist{display:none}
+  #mobnav{display:flex; gap:8px; padding:2px 0}
+  .mcat-wrap{position:relative; flex:1 1 0; min-width:0}
+  .mcat{width:100%; display:flex; align-items:center; justify-content:center; gap:7px; padding:12px 8px; overflow:hidden;
+    border:1px solid var(--line2); border-radius:12px; background:linear-gradient(180deg,rgba(20,24,33,.96),rgba(13,16,23,.94));
+    color:var(--dim); font:600 12.5px/1 var(--mono); letter-spacing:.02em; cursor:pointer; transition:.15s}
+  .mcat .mci{width:16px; height:16px; flex:none; color:var(--cyan-dim); display:flex}
+  .mcat .mci svg{width:16px; height:16px}
+  .mcat .mcl{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mcat .mcc{display:none}
+  .mcat .mcx{width:13px; height:13px; color:var(--faint); flex:none; transition:transform .2s}
+  .mcat-wrap.open .mcat{border-color:var(--cyan-dim); color:var(--fg); box-shadow:0 0 0 3px hsl(var(--ch) 82% 66% / .1)}
+  .mcat-wrap.open .mcx{transform:rotate(180deg); color:var(--cyan)}
+  .mcat-pop{position:absolute; top:calc(100% + 9px); left:0; z-index:50; min-width:250px; width:max-content; max-width:80vw;
+    padding:6px; background:rgba(13,16,22,.99);
+    border:1px solid var(--line2); border-radius:13px; box-shadow:0 30px 72px -22px rgba(0,0,0,.86);
+    max-height:60vh; overflow-y:auto; opacity:0; transform:translateY(-7px) scale(.98); transform-origin:top left;
+    pointer-events:none; transition:opacity .16s, transform .16s}
+  .mcat-wrap:last-child .mcat-pop{left:auto; right:0; transform-origin:top right}
+  .mcat-wrap.open .mcat-pop{opacity:1; transform:none; pointer-events:auto}
+  .mcat-pop::-webkit-scrollbar{width:8px}
+  .mcat-pop::-webkit-scrollbar-thumb{background:var(--line2); border-radius:8px; border:2px solid transparent; background-clip:padding-box}
+  .mcat-opt{display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 11px; margin:1px 0;
+    border:0; background:transparent; border-radius:8px; cursor:pointer; color:var(--dim); transition:background .12s, color .12s}
+  .mcat-opt:hover,.mcat-opt.sel{background:hsl(var(--ch) 82% 66% / .1)}
+  .mcat-opt .oi{width:20px; height:20px; flex:none; color:var(--faint); display:flex; align-items:center; justify-content:center}
+  .mcat-opt .oi svg{width:19px; height:19px}
+  .mcat-opt.sel .oi{color:var(--cyan)}
+  .mo-t{min-width:0; display:flex; flex-direction:column; gap:3px}
+  .mo-id{font:600 13px/1 var(--mono); color:var(--fg); white-space:nowrap}
+  .mcat-opt.sel .mo-id{color:var(--cyan)}
+  .mo-d{font-size:11px; color:var(--faint); line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:64vw}
+  #mobscrim{display:block; position:fixed; inset:0; z-index:20; background:rgba(4,6,9,.52);
+    opacity:0; pointer-events:none; transition:opacity .18s}
+  #mobscrim.show{opacity:1; pointer-events:auto}
+  .hero{min-height:auto; justify-content:flex-start; padding:26px 22px 44px}
+  .hero h1{font-size:clamp(30px,9vw,44px)}
+  .hero .lede{margin-top:20px; font-size:15px}
+  .hero-viz{margin:26px 0 4px} .stats{margin:26px 0 0}
+  .wrap{padding:30px 24px 80px}
+  .hdr-tag{display:none}
+  header{padding:12px 16px; gap:12px; overflow:hidden; min-width:0}
+  .hdr-right{min-width:0; gap:10px}
+  .hdr-right .chip{display:none}
+  .hue{min-width:0}
+  .hue label,.hue .val{display:none}
 }
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.001s !important; animation-iteration-count:1 !important; transition:none !important}
@@ -383,6 +443,7 @@ section{overflow-y:auto; overflow-x:hidden; padding:0}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="search" placeholder="search operations…" autocomplete="off" spellcheck="false">
     </div></div>
+    <div id="mobnav" aria-label="operation categories"></div>
     <div id="oplist"></div>
   </aside>
   <div class="resizer" id="resizer" title="Drag to resize"></div>
@@ -390,6 +451,7 @@ section{overflow-y:auto; overflow-x:hidden; padding:0}
   <section id="work">
     <div class="hero" id="hero"></div>
   </section>
+  <div id="mobscrim"></div>
 </main>
 
 <script>
@@ -472,6 +534,7 @@ async function boot(){
   renderHero();
   renderList('');
   $('#search').addEventListener('input', e=>renderList(e.target.value.toLowerCase()));
+  document.addEventListener('click', e=>{ if(!e.target.closest('#mobnav')) closeMobCats(); });
   const fromHash=()=>{ const o=OPS.find(x=>x.id===location.hash.slice(1)); if(o) selectOp(o); else if(!location.hash){ current=null; renderHero(); renderList($('#search').value.toLowerCase()); } };
   window.addEventListener('hashchange', fromHash);
   fromHash();
@@ -557,6 +620,35 @@ function renderList(q){
     }
   }
   if(!any) list.innerHTML='<div class="no-res">no operations match “'+q+'”</div>';
+  renderMobNav();
+}
+
+/* mobile: worded category dropdowns that float OVER the workspace */
+function closeMobCats(){
+  document.querySelectorAll('.mcat-wrap.open').forEach(w=>w.classList.remove('open'));
+  const s=$('#mobscrim'); if(s) s.classList.remove('show');
+}
+function renderMobNav(){
+  const nav=$('#mobnav'); if(!nav) return;
+  nav.innerHTML='';
+  for(const cat of ['video','audio','image']){
+    const ops=OPS.filter(o=>o.category===cat);
+    if(!ops.length) continue;
+    const wrap=document.createElement('div'); wrap.className='mcat-wrap';
+    const btn=document.createElement('button'); btn.type='button'; btn.className='mcat';
+    btn.innerHTML=`<span class="mci">${catIcon(cat)}</span><span class="mcl">${CATLABEL[cat]}</span><span class="mcc">${ops.length}</span><svg class="mcx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+    const pop=document.createElement('div'); pop.className='mcat-pop';
+    for(const o of ops){
+      const opt=document.createElement('button'); opt.type='button';
+      opt.className='mcat-opt'+(current&&current.id===o.id?' sel':'');
+      opt.innerHTML=`<span class="oi">${opIcon(o.id)}</span><span class="mo-t"><span class="mo-id">${o.id}</span><span class="mo-d">${o.description}</span></span>`;
+      opt.onclick=()=>{ closeMobCats(); location.hash=o.id; };
+      pop.appendChild(opt);
+    }
+    btn.onclick=(e)=>{ e.stopPropagation(); const isOpen=wrap.classList.contains('open'); closeMobCats();
+      if(!isOpen){ wrap.classList.add('open'); const s=$('#mobscrim'); if(s) s.classList.add('show'); } };
+    wrap.appendChild(btn); wrap.appendChild(pop); nav.appendChild(wrap);
+  }
 }
 
 function selectOp(o){
@@ -584,7 +676,7 @@ function selectOp(o){
     </div>
     <input type="file" id="file" hidden>
     ${pathParams.length?`<div class="aux">
-      <div class="sect-label" style="margin-top:26px"><span class="n">02</span> Attachments<span class="rule"></span></div>
+      <div class="sect-label" style="margin-top:20px"><span class="n">02</span> Attachments<span class="rule"></span></div>
       <div class="params">${pathParams.map(p=>`
         <div class="field">
           <label>${p.name} ${p.required?'<span class="req">*</span>':''}</label>
@@ -592,7 +684,7 @@ function selectOp(o){
           <input type="file" data-aux="${p.name}">
         </div>`).join('')}</div></div>`:''}
 
-    ${knobParams.length?`<div class="sect-label" style="margin-top:30px"><span class="n">${pathParams.length?'03':'02'}</span> Settings<span class="rule"></span></div>
+    ${knobParams.length?`<div class="sect-label" style="margin-top:20px"><span class="n">${pathParams.length?'03':'02'}</span> Settings<span class="rule"></span></div>
     <div class="params">${knobParams.map(renderField).join('')}</div>`:''}
 
     <div class="runbar">
