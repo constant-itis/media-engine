@@ -22,6 +22,9 @@ machine.
 </p>
 <p align="center"><sub>The web UI running <code>video_to_gif</code> — drag a file, tune the auto-generated form, watch ffmpeg run live. <em>Same page, hue knob rotated:</em> every accent is one CSS variable and shader/canvas uniform, so the whole palette and the animated background recolor instantly (and the motion can be paused to save resources).</sub></p>
 
+<p align="center"><sub><em>Dogfood note:</em> these screenshots were downscaled for the repo with media-engine itself —<br>
+<code>python3 cli.py run resize_image -i shot.png -o assets/screenshot.png --imageResizePreset manual --imageCustomWidth 1200 --imageCustomHeight 550</code></sub></p>
+
 ```
                       ┌──────────────────────────────┐
   cli.py ────────────►│                              │
