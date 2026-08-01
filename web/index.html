@@ -88,6 +88,17 @@ header{
 .chip .pulse{width:7px; height:7px; border-radius:50%; background:var(--ok);
   box-shadow:0 0 0 0 rgba(94,233,160,.6); animation:pulse 2.4s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(94,233,160,.5)}70%{box-shadow:0 0 0 7px rgba(94,233,160,0)}100%{box-shadow:0 0 0 0 rgba(94,233,160,0)}}
+/* motion toggle */
+.mtoggle{display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; flex:none;
+  border:1px solid var(--line2); border-radius:9px; background:rgba(255,255,255,.02); color:var(--cyan-dim); cursor:pointer; transition:.15s}
+.mtoggle:hover{color:var(--cyan); border-color:var(--cyan-dim); background:hsl(var(--ch) 82% 66% / .06)}
+.mtoggle svg{width:18px; height:18px}
+.mtoggle .i-off{display:none}
+.mtoggle.paused{color:var(--faint)}
+.mtoggle.paused .i-on{display:none}
+.mtoggle.paused .i-off{display:inline}
+/* freeze decorative CSS animations when motion is paused */
+body.static .chip .pulse,body.static .hero-cue .ar{animation:none!important}
 /* hue knob */
 .hue{display:flex; align-items:center; gap:9px; padding:5px 12px 5px 11px; border:1px solid var(--line2);
   border-radius:999px; background:rgba(255,255,255,.02)}
@@ -427,6 +438,10 @@ section{position:relative; z-index:1; overflow-y:auto; overflow-x:hidden;
   </a>
   <span class="hdr-tag">Headless <b>ffmpeg</b> operations — drag a file, pick an op, run it locally</span>
   <div class="hdr-right">
+    <button class="mtoggle" id="motion" type="button" aria-pressed="false" title="Pause the background animation to save CPU/GPU">
+      <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h2l2-6 3 15 3-13 2 8 2-4h4"/></svg>
+      <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
+    </button>
     <div class="hue" title="Rotate the whole palette — drag, or double-click to reset">
       <label for="hue">hue</label>
       <input type="range" id="hue" min="-180" max="180" step="1" value="0" aria-label="palette hue">
@@ -461,12 +476,33 @@ let OPS=[], current=null, inputFile=null, auxFiles={};
 
 /* ---------- hue knob: rotates the entire palette off one value ---------- */
 let HUE=(()=>{ const v=parseFloat(localStorage.getItem('me_hue')); return isFinite(v)?v:0; })();
+// background/canvas animation on/off. explicit choice wins; else default off when the OS asks to reduce motion.
+let MOTION=(()=>{ const v=localStorage.getItem('me_motion');
+  if(v==='0') return false; if(v==='1') return true;
+  return !matchMedia('(prefers-reduced-motion:reduce)').matches; })();
 function applyHue(v, persist){
   HUE=v;
   document.documentElement.style.setProperty('--sh', v);
   const vl=$('#hueval'); if(vl) vl.textContent=(v>0?'+':'')+v+'°';
   const sl=$('#hue'); if(sl && +sl.value!==v) sl.value=v;
+  // while paused, repaint one static frame so the hue change is visible
+  if(!MOTION){ window.__bg&&window.__bg.redraw(); window.__viz&&window.__viz.stop(); }
   if(persist){ try{ localStorage.setItem('me_hue', v); }catch(e){} }
+}
+function applyMotion(on, persist){
+  MOTION=on;
+  document.body.classList.toggle('static', !on);
+  const btn=$('#motion'); if(btn){ btn.classList.toggle('paused', !on); btn.setAttribute('aria-pressed', on?'false':'true'); }
+  if(on){ window.__bg&&window.__bg.start(); window.__viz&&window.__viz.start(); }
+  else  { window.__bg&&window.__bg.stop();  window.__viz&&window.__viz.stop();  }
+  if(persist){ try{ localStorage.setItem('me_motion', on?'1':'0'); }catch(e){} }
+}
+function initMotion(){
+  const btn=$('#motion'); if(!btn) return;
+  btn.classList.toggle('paused', !MOTION);
+  btn.setAttribute('aria-pressed', MOTION?'false':'true');
+  document.body.classList.toggle('static', !MOTION);
+  btn.onclick=()=>applyMotion(!MOTION, true);
 }
 function initHue(){
   const q=parseFloat(new URLSearchParams(location.search).get('hue'));
@@ -581,7 +617,7 @@ function startViz(){
     for(let i=0;i<N;i++){
       const u=i/(N-1);
       const env=Math.pow(Math.sin(u*Math.PI),0.65);
-      const m=reduce?0.55:(0.42+0.58*Math.abs(Math.sin(t*0.0016+i*0.55)*Math.cos(t*0.0011+i*0.83)));
+      const m=MOTION?(0.42+0.58*Math.abs(Math.sin(t*0.0016+i*0.55)*Math.cos(t*0.0011+i*0.83))):0.55;
       const bh=Math.max(3,(0.10+env*0.9*m)*H*0.72);
       const bx=i*bw+bw*0.2, bwe=bw*0.6, r=bwe*0.5;
       const c=mix(CY,VI,u);
@@ -595,9 +631,11 @@ function startViz(){
       ctx.beginPath(); ctx.roundRect(bx,base+1,bwe,bh*0.5,[1,1,r,r]); ctx.fill();
       ctx.globalAlpha=1;
     }
-    if(!reduce) vizRaf=requestAnimationFrame(draw);
+    if(MOTION) vizRaf=requestAnimationFrame(draw);
   }
-  vizRaf=requestAnimationFrame(draw);
+  window.__viz={ start(){ cancelAnimationFrame(vizRaf); vizRaf=requestAnimationFrame(draw); },
+                 stop(){ cancelAnimationFrame(vizRaf); draw(0); } };
+  if(MOTION) vizRaf=requestAnimationFrame(draw); else draw(0);
 }
 
 function renderList(q){
@@ -915,6 +953,7 @@ function previewHTML(ct,url){
   function resize(){ const dpr=Math.min(devicePixelRatio||1,1.5); c.width=innerWidth*dpr; c.height=innerHeight*dpr; gl.viewport(0,0,c.width,c.height); }
   addEventListener('resize',resize); resize();
   const start=performance.now();
+  let raf=0;
   function frame(now){
     mx+=(tmx-mx)*0.04; my+=(tmy-my)*0.04;
     gl.uniform2f(uRes,c.width,c.height);
@@ -922,15 +961,18 @@ function previewHTML(ct,url){
     gl.uniform2f(uM,mx,my);
     gl.uniform1f(uHue,HUE*0.0174533);
     gl.drawArrays(gl.TRIANGLES,0,3);
-    if(!reduce) raf=requestAnimationFrame(frame);
+    if(MOTION) raf=requestAnimationFrame(frame);
   }
-  let raf=requestAnimationFrame(frame);
-  if(reduce){ // one static frame only
-    gl.uniform2f(uRes,c.width,c.height); gl.uniform1f(uT,12.0); gl.uniform2f(uM,0,0); gl.uniform1f(uHue,HUE*0.0174533); gl.drawArrays(gl.TRIANGLES,0,3);
-    cancelAnimationFrame(raf);
+  function renderOnce(){ // single static frame — still honours the current hue
+    gl.uniform2f(uRes,c.width,c.height); gl.uniform1f(uT,12.0); gl.uniform2f(uM,mx,my); gl.uniform1f(uHue,HUE*0.0174533); gl.drawArrays(gl.TRIANGLES,0,3);
   }
+  // hooks the motion toggle + hue slider drive
+  window.__bg={ start(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(frame); },
+                stop(){ cancelAnimationFrame(raf); raf=0; renderOnce(); },
+                redraw(){ if(!MOTION) renderOnce(); } };
+  if(MOTION) raf=requestAnimationFrame(frame); else renderOnce();
   // pause when tab hidden
-  document.addEventListener('visibilitychange',()=>{ if(document.hidden){ cancelAnimationFrame(raf); } else if(!reduce){ raf=requestAnimationFrame(frame); } });
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden){ cancelAnimationFrame(raf); } else if(MOTION){ raf=requestAnimationFrame(frame); } });
 })();
 
 let tipEl=null;
@@ -964,6 +1006,7 @@ function initSidebar(){
   }
 }
 initHue();
+initMotion();
 initSidebar();
 boot();
 </script>
